@@ -1,45 +1,26 @@
 {
   "project_info": {
-
-    "project_number": "766937569914",
-    "project_id": "e-rickshaw-455f6",
-    "storage_bucket": "e-rickshaw-455f6.appspot.com"
-
+    "project_number": "491184266785",
+    "project_id": "erickshaw-thapar-7030",
+    "storage_bucket": "erickshaw-thapar-7030.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:766937569914:android:92fa3539630f2c3a5f39c3",
+        "mobilesdk_app_id": "1:491184266785:android:3173ba507f4721b3f90d60",
         "android_client_info": {
-          "package_name": "com.example.erickshaw"
+          "package_name": "edu.thapar.erickshaw"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "766937569914-fsfmaca5rru80r0t2o8qldvme7jgffhv.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDjmWFsc8cz09F0L8cgGFCvf6ERqftapzE"
+          "current_key": "AIzaSyBt5iG0f87IYFNe0qsBySgIFdgfDkj9w0s"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "766937569914-fsfmaca5rru80r0t2o8qldvme7jgffhv.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "766937569914-kj8rp6fbmmbfiqigh4hqqddktuopfcj9.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.example.erickshaw"
-              }
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }

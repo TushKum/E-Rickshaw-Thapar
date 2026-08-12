@@ -1,6 +1,19 @@
-# E-Rickshaw
+# E-Rickshaw — Thapar (TIET) Patiala
 
-A useful app for the E-Rickshaw drivers and their customers in IITG Campus. This app displays live requests of the passengers to the E-Rickshaw drivers which they can accept or reject. Once accepted, information like number, name, number-plate etc is exchanged between the driver and the passenger. 
+An app for e-rickshaw drivers and their passengers on the Thapar Institute of
+Engineering and Technology campus. It shows live passenger requests to drivers,
+who can accept or reject them. Once accepted, details like name, number and
+number-plate are exchanged between the driver and the passenger.
+
+> **Origin and credit.** This is a derivative of
+> [Sparsh752/E-Rickshaw](https://github.com/Sparsh752/E-Rickshaw), originally
+> built for the IIT Guwahati campus by Sparsh Mittal and the contributors
+> credited below. The upstream project carries no licence, so all rights remain
+> with its authors — this copy exists for the Thapar deployment and is not a
+> claim of original authorship.
+>
+> Changes here: pickup/drop points retargeted to Thapar landmarks, migration to
+> Dart 3 and AGP 8, a new Firebase project, and tested Firestore security rules.
 
 ## Acknowledgements
 

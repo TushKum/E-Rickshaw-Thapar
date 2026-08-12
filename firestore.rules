@@ -1,0 +1,98 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Role is derived from which profile collection holds a document for the
+    // caller. create_driver()/create_passenger() write exactly one of these at
+    // signup, so membership is the role marker.
+    function isDriver() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/drivers/$(request.auth.uid));
+    }
+
+    function isPassenger() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/passengers/$(request.auth.uid));
+    }
+
+    // Profiles. Readable by any signed-in user because the match exchanges
+    // contact details both ways: the passenger opens driverinfo.dart against
+    // the accepting driver's uid, the driver opens passinfo.dart against the
+    // passenger's. Only the owning account may write its own profile.
+    match /drivers/{uid} {
+      allow read: if signedIn();
+      allow create, update, delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /passengers/{uid} {
+      allow read: if signedIn();
+      allow create, update, delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    // Ride requests. Document id is the requesting passenger's uid.
+    match /requests/{passengerUid} {
+
+      function validShape() {
+        return request.resource.data.keys().hasOnly(['from', 'to', 'pending', 'driver_uid'])
+          && request.resource.data.keys().hasAll(['from', 'to', 'pending', 'driver_uid'])
+          && request.resource.data.from is string
+          && request.resource.data.to is string
+          && request.resource.data.from != request.resource.data.to;
+      }
+
+      function isOwner() {
+        return signedIn() && request.auth.uid == passengerUid;
+      }
+
+      // The owning passenger reads their own request to poll for acceptance
+      // (check_request). Drivers list the whole collection (read) to see open
+      // requests — isDriver() is document-independent, so the collection query
+      // in DriverOptions.Reload() still resolves.
+      allow read: if isOwner() || isDriver();
+
+      // Opening a request: only for yourself, only unassigned.
+      allow create: if isOwner()
+        && isPassenger()
+        && validShape()
+        && request.resource.data.pending == '0'
+        && request.resource.data.driver_uid == '';
+
+      // Two legitimate updates.
+      //
+      // 1. The passenger re-issuing their own still-unclaimed request.
+      //    select_route.dart uses .set(), which is an update when a stale
+      //    document survives.
+      allow update: if isOwner()
+        && validShape()
+        && request.resource.data.pending == '0'
+        && request.resource.data.driver_uid == '';
+
+      // 2. A driver accepting. This is the write that previously let any
+      //    signed-in account hijack or cancel a stranger's ride. It is now
+      //    restricted to registered drivers, who must stamp their *own* uid,
+      //    may only move a still-open request into the accepted state, and
+      //    may not rewrite the route while doing so.
+      allow update: if isDriver()
+        && validShape()
+        && resource.data.pending == '0'
+        && request.resource.data.pending == '1'
+        && request.resource.data.driver_uid == request.auth.uid
+        && request.resource.data.from == resource.data.from
+        && request.resource.data.to == resource.data.to;
+
+      // Only the passenger clears their own request — on "Cancel Ride", and
+      // again once pass_waiting.dart has read the matched driver's details.
+      allow delete: if isOwner();
+    }
+
+    // Everything else is closed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

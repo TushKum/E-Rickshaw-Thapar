@@ -8,6 +8,28 @@ import 'package:fluttertoast/fluttertoast.dart';
 
 import '../database.dart';
 
+/// Pickup / drop points on the Thapar (TIET) Patiala campus.
+/// Single source for both the FROM and TO dropdowns — edit here only.
+const List<String> campusStops = <String>[
+  "Main Gate",
+  "Fountain Chowk",
+  "Academic Blocks (A/B/C)",
+  "E Block",
+  "G Block",
+  "Lecture Theatre (LT)",
+  "Central Library",
+  "LM Thapar School of Management",
+  "Chatter",
+  "Student Centre",
+  "Sports Complex",
+  "Boys Hostels (A-G)",
+  "Girls Hostels (H-Q)",
+  "Cosmo Hostel",
+  "Medical Centre",
+  "Guest House",
+  "Faculty Housing",
+];
+
 class SelectRoute extends StatefulWidget {
   const SelectRoute({Key? key}) : super(key: key);
 
@@ -139,18 +161,7 @@ class _SelectRouteState extends State<SelectRoute> {
                               size: 30,
                             ),
                             value: fromValue,
-                            items: <String>[
-                              "KV Gate",
-                              "Academic Complex",
-                              "Market Complex",
-                              "Hostel 1",
-                              "Hostel 2",
-                              "Subansiri/Dhansiri",
-                              "MSH",
-                              "GuestHouse",
-                              "Hospital",
-                              "B/C/D/E/F type"
-                            ].map((String val) {
+                            items: campusStops.map((String val) {
                               return DropdownMenuItem<String>(
                                 value: val,
                                 child: Text(val),
@@ -214,18 +225,7 @@ class _SelectRouteState extends State<SelectRoute> {
                               size: 30,
                             ),
                             value: toValue,
-                            items: <String>[
-                              "KV Gate",
-                              "Academic Complex",
-                              "Market Complex",
-                              "Hostel 1",
-                              "Hostel 2",
-                              "Subansiri/Dhansiri",
-                              "MSH",
-                              "GuestHouse",
-                              "Hospital",
-                              "B/C/D/E/F type"
-                            ].map((String val) {
+                            items: campusStops.map((String val) {
                               return DropdownMenuItem<String>(
                                 value: val,
                                 child: Text(val),

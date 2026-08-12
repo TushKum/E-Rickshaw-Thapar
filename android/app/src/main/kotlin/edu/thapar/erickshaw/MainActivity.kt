@@ -1,4 +1,4 @@
-package com.example.erickshaw
+package edu.thapar.erickshaw
 
 import io.flutter.embedding.android.FlutterActivity
 

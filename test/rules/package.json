@@ -1,0 +1,13 @@
+{
+  "name": "erickshaw-rules-tests",
+  "private": true,
+  "type": "module",
+  "description": "Firestore security rules tests for ../../firestore.rules",
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore --project demo-erickshaw --config ../../firebase.json \"node rules.test.mjs\""
+  },
+  "dependencies": {
+    "@firebase/rules-unit-testing": "^5.0.0",
+    "firebase": "^12.0.0"
+  }
+}

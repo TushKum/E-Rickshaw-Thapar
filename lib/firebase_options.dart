@@ -17,13 +17,19 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      return web;
+      throw UnsupportedError(
+        'DefaultFirebaseOptions have not been configured for web - '
+        'you can reconfigure this by running the FlutterFire CLI again.',
+      );
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        return ios;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for ios - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.macOS:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for macos - '
@@ -46,31 +52,11 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBtPhoGt3ibpJI5OLxfIa0dWla42qj5fig',
-    appId: '1:766937569914:web:35fba5461d570abf5f39c3',
-    messagingSenderId: '766937569914',
-    projectId: 'e-rickshaw-455f6',
-    authDomain: 'e-rickshaw-455f6.firebaseapp.com',
-    storageBucket: 'e-rickshaw-455f6.appspot.com',
-    measurementId: 'G-7VZQXBTPG5',
-  );
-
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDjmWFsc8cz09F0L8cgGFCvf6ERqftapzE',
-    appId: '1:766937569914:android:92fa3539630f2c3a5f39c3',
-    messagingSenderId: '766937569914',
-    projectId: 'e-rickshaw-455f6',
-    storageBucket: 'e-rickshaw-455f6.appspot.com',
-  );
-
-  static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAcer0SYnEEkQZuY2RRVnR9H5gOKcvMT48',
-    appId: '1:766937569914:ios:eae59ca623e9572f5f39c3',
-    messagingSenderId: '766937569914',
-    projectId: 'e-rickshaw-455f6',
-    storageBucket: 'e-rickshaw-455f6.appspot.com',
-    iosClientId: '766937569914-kj8rp6fbmmbfiqigh4hqqddktuopfcj9.apps.googleusercontent.com',
-    iosBundleId: 'com.example.erickshaw',
+    apiKey: 'AIzaSyBt5iG0f87IYFNe0qsBySgIFdgfDkj9w0s',
+    appId: '1:491184266785:android:3173ba507f4721b3f90d60',
+    messagingSenderId: '491184266785',
+    projectId: 'erickshaw-thapar-7030',
+    storageBucket: 'erickshaw-thapar-7030.firebasestorage.app',
   );
 }

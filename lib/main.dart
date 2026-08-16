@@ -1,7 +1,7 @@
 import 'package:erickshaw/screens/landingpage.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
@@ -21,10 +21,15 @@ void main() async {
   //
   // Enforcement is deliberately OFF in the console: turning it on now would
   // reject every sideloaded install. See docs/APP_CHECK.md before enabling.
-  await FirebaseAppCheck.instance.activate(
-    androidProvider:
-        kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
-  );
+  // Skipped on web: the web provider is reCAPTCHA and needs a site key, which
+  // is not set up. activate() would throw. Web is a development target here,
+  // not a distribution one.
+  if (!kIsWeb) {
+    await FirebaseAppCheck.instance.activate(
+      androidProvider:
+          kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+    );
+  }
 
   runApp(const MaterialApp(
     home: Landing(),

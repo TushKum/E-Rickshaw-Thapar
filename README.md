@@ -24,6 +24,22 @@ The following people have contributed a lot in this project without whom the pro
   <li><a href="https://github.com/tanisha-salvi">Tanisha Salvi</a></li>
 </ul>
 
+## Running it
+
+See **[docs/RUNNING.md](docs/RUNNING.md)** for the full runbook — Android,
+web, the iOS/macOS prerequisites, and the security-rules tests.
+
+The short version:
+
+```bash
+flutter pub get
+flutter build apk --release
+```
+
+Note that **login and signup will not work** until the Email/Password provider
+is enabled in the Firebase console. See
+[docs/APP_CHECK.md](docs/APP_CHECK.md) for the App Check story.
+
 ## Installation
 
 Clone this repo to your local storage using

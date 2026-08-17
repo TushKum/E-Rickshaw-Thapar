@@ -20,11 +20,13 @@ class PassWait extends StatefulWidget {
 
 class _PassWaitState extends State<PassWait> {
   late Databases db;
-  late Timer timer;
+  StreamSubscription<Map<String, dynamic>?>? _sub;
   final auth = FirebaseAuth.instance;
   late String _uid;
 
-  String passuid = "", passfrom = "", passto = "";
+  /// Guards against acting twice: clearing the request after a match pushes
+  /// another snapshot through the same listener.
+  bool _handled = false;
 
   @override
   void initState() {
@@ -32,39 +34,38 @@ class _PassWaitState extends State<PassWait> {
     db = Databases();
     db.initialise();
     _uid = auth.currentUser?.uid.toString() ?? "";
-    // NOTE: polls once per second. Every tick is a Firestore document read, so
-    // this burns quota fast at pilot scale — see docs/RUNNING.md. Should move
-    // to a snapshots() listener.
-    timer = Timer.periodic(const Duration(seconds: 1), (_) => CheckAccepted());
+    _sub = db.watch_request(_uid).listen(_onRequestChanged);
   }
 
   @override
   void dispose() {
-    timer.cancel();
+    _sub?.cancel();
     super.dispose();
   }
 
-  Future<void> CheckAccepted() async {
-    final value = await db.check_request(_uid);
-    if (!mounted || value == null) return;
-    if (value['pending'] == '1') {
-      timer.cancel();
-      passfrom = value['from'];
-      passto = value['to'];
-      passuid = value['driver_uid'];
-      db.delete(_uid);
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => driver_details(uid: passuid, pfrom: passfrom, to: passto),
-        ),
-      );
-    }
+  void _onRequestChanged(Map<String, dynamic>? value) {
+    if (!mounted || _handled || value == null) return;
+    if (value['pending'] != '1') return;
+
+    _handled = true;
+    _sub?.cancel();
+
+    final from = value['from'] as String? ?? '';
+    final to = value['to'] as String? ?? '';
+    final driverUid = value['driver_uid'] as String? ?? '';
+
+    db.delete(_uid);
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => driver_details(uid: driverUid, pfrom: from, to: to),
+      ),
+    );
   }
 
   void _cancel() {
-    timer.cancel();
+    _handled = true;
+    _sub?.cancel();
     db.delete(_uid);
     Navigator.pushReplacement(
         context, MaterialPageRoute(builder: (_) => const SelectRoute()));

@@ -21,10 +21,7 @@ class DriverOptions extends StatefulWidget {
 class _DriverOptionsState extends State<DriverOptions> {
   final auth = FirebaseAuth.instance;
   late Databases db;
-  List docs = [];
-  bool _loadedOnce = false;
-
-  late Timer timer;
+  late final Stream<List<Map<String, dynamic>>> _requests;
   late String _uid;
 
   @override
@@ -33,27 +30,9 @@ class _DriverOptionsState extends State<DriverOptions> {
     db = Databases();
     db.initialise();
     _uid = auth.currentUser?.uid.toString() ?? "";
-    // NOTE: polls the whole requests collection once per second. Firestore
-    // bills one read per document returned, so this is the single biggest
-    // quota risk at pilot scale — see docs/RUNNING.md. Should move to a
-    // snapshots() listener.
-    timer = Timer.periodic(const Duration(seconds: 1), (_) => Reload());
-    Reload();
-  }
-
-  @override
-  void dispose() {
-    timer.cancel();
-    super.dispose();
-  }
-
-  Future<void> Reload() async {
-    final value = await db.read();
-    if (!mounted) return;
-    setState(() {
-      docs = value ?? [];
-      _loadedOnce = true;
-    });
+    // Built once and held, so rebuilds do not tear down and re-attach the
+    // listener (which would re-bill every document each time).
+    _requests = db.watch_open_requests();
   }
 
   void _accept(Map request) {
@@ -73,9 +52,6 @@ class _DriverOptionsState extends State<DriverOptions> {
 
   @override
   Widget build(BuildContext context) {
-    // Requests already claimed by a driver should not sit in the open list.
-    final open = docs.where((d) => d['pending'] == '0').toList();
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -97,22 +73,30 @@ class _DriverOptionsState extends State<DriverOptions> {
       ),
       body: SafeArea(
         top: false,
-        child: !_loadedOnce
-            ? const Center(
-                child: CircularProgressIndicator(color: AppColors.primary))
-            : open.isEmpty
-                ? const _EmptyState()
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(AppSpacing.screen,
-                        AppSpacing.sm, AppSpacing.screen, AppSpacing.xl),
-                    itemCount: open.length,
-                    separatorBuilder: (_, __) =>
-                        const SizedBox(height: AppSpacing.md),
-                    itemBuilder: (context, i) => _RequestCard(
-                      request: open[i],
-                      onAccept: () => _accept(open[i]),
-                    ),
-                  ),
+        child: StreamBuilder<List<Map<String, dynamic>>>(
+          stream: _requests,
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return const _ErrorState();
+            }
+            if (!snapshot.hasData) {
+              return const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary));
+            }
+            final open = snapshot.data!;
+            if (open.isEmpty) return const _EmptyState();
+            return ListView.separated(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.screen,
+                  AppSpacing.sm, AppSpacing.screen, AppSpacing.xl),
+              itemCount: open.length,
+              separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
+              itemBuilder: (context, i) => _RequestCard(
+                request: open[i],
+                onAccept: () => _accept(open[i]),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -174,6 +158,46 @@ class _RequestCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Shown when the listener itself fails — most likely the security rules
+/// refusing the query because this account has no drivers/{uid} document.
+class _ErrorState extends StatelessWidget {
+  const _ErrorState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              height: 150,
+              width: 150,
+              decoration: const BoxDecoration(
+                color: AppColors.primarySoft,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.wifi_off_rounded,
+                  size: 68, color: AppColors.primary),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            const Text("Can't load requests",
+                style: AppText.title, textAlign: TextAlign.center),
+            const SizedBox(height: AppSpacing.sm),
+            const Text(
+              'Check your connection. If this keeps happening, your driver '
+              'account may not be registered yet.',
+              style: AppText.bodyMuted,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

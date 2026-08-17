@@ -27,6 +27,34 @@ class Databases{
       print(e);
     }
   }
+  /// Live view of one passenger's own request. Emits null once it is cleared.
+  ///
+  /// Replaces polling check_request() on a timer. A listener is billed one
+  /// read when it attaches and one per changed document after that, so an
+  /// idle waiting screen costs nothing.
+  Stream<Map<String, dynamic>?> watch_request(String uid) {
+    return firestore
+        .collection("requests")
+        .doc(uid)
+        .snapshots()
+        .map((snapshot) => snapshot.data());
+  }
+
+  /// Live view of every unclaimed request, for the driver's list.
+  ///
+  /// The pending filter runs server-side, so accepted rides are never sent to
+  /// the client and never billed. Replaces polling read(), which fetched the
+  /// whole collection once a second and filtered on the device.
+  Stream<List<Map<String, dynamic>>> watch_open_requests() {
+    return firestore
+        .collection("requests")
+        .where('pending', isEqualTo: '0')
+        .snapshots()
+        .map((query) => query.docs
+            .map((doc) => <String, dynamic>{'id': doc.id, ...doc.data()})
+            .toList());
+  }
+
   Future read() async{
     QuerySnapshot querySnapshot;
     List docs=[];

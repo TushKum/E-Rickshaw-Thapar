@@ -3,7 +3,7 @@ import {
   assertSucceeds,
   assertFails,
 } from '@firebase/rules-unit-testing';
-import { doc, setDoc, getDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, setDoc, getDoc, deleteDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -64,6 +64,17 @@ await check('passenger reads their own request (polling for accept)', () =>
 
 await check('driver lists every open request', () =>
   assertSucceeds(getDocs(collection(db(DRIVER), 'requests'))));
+
+// DriverOptions listens with where('pending','==','0') rather than fetching
+// the whole collection. isDriver() is document-independent so the rule still
+// resolves, but the query shape is worth pinning.
+await check('driver runs the filtered open-requests query', () =>
+  assertSucceeds(getDocs(
+    query(collection(db(DRIVER), 'requests'), where('pending', '==', '0')))));
+
+await check('non-driver CANNOT run that query', () =>
+  assertFails(getDocs(
+    query(collection(db(NOBODY), 'requests'), where('pending', '==', '0')))));
 
 await check('driver accepts, stamping their own uid', () =>
   assertSucceeds(setDoc(doc(db(DRIVER), 'requests', PASSENGER),

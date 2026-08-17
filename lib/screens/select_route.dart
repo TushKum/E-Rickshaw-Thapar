@@ -1,12 +1,13 @@
-// ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables, no_leading_underscores_for_local_identifiers, avoid_print, unused_element
+// ignore_for_file: use_build_context_synchronously
 
 import 'package:erickshaw/screens/landingpage.dart';
 import 'package:erickshaw/screens/pass_waiting.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 
 import '../database.dart';
+import '../theme/app_theme.dart';
+import '../widgets/widget.dart';
 
 /// Pickup / drop points on the Thapar (TIET) Patiala campus.
 /// Single source for both the FROM and TO dropdowns — edit here only.
@@ -37,281 +38,263 @@ class SelectRoute extends StatefulWidget {
   State<SelectRoute> createState() => _SelectRouteState();
 }
 
-bool _iconbool = false;
-
-IconData _iconLight = Icons.wb_sunny;
-IconData _iconDark = Icons.nights_stay;
-
 class _SelectRouteState extends State<SelectRoute> {
   late Databases db;
-  initialise() {
-    db = Databases();
-    db.initialise();
-  }
-
-  late Map a;
   final auth = FirebaseAuth.instance;
   late String _uid;
-  void initState() {
-    super.initState();
-    initialise();
-    _uid = auth.currentUser?.uid.toString() ?? "";
-    checking();
-  }
 
   String? fromValue;
   String? toValue;
-  String? errormsg;
+
   @override
-  Widget build(BuildContext context) {
-    ThemeData _lightTheme = ThemeData(
-      primarySwatch: Colors.amber,
-      brightness: Brightness.light,
-      // buttonTheme: ButtonThemeData(buttonColor: Colors.black),
-      appBarTheme: AppBarTheme(backgroundColor: Color.fromARGB(0, 51, 102, 1)),
-    );
-
-    ThemeData _darkTheme = ThemeData(
-      primarySwatch: Colors.deepOrange,
-      brightness: Brightness.dark,
-      // appBarTheme: AppBarTheme(backgroundColor: Colors.blue),
-
-      // buttonTheme: ButtonThemeData(buttonColor: Colors.white)
-    );
-    return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: _iconbool ? _darkTheme : _lightTheme,
-        home: Container(
-            decoration: BoxDecoration(
-                image: DecorationImage(
-                    image: AssetImage(
-                      'assets/images/bg.png',
-                    ),
-                    colorFilter: new ColorFilter.mode(
-                        Colors.black.withOpacity(0.4), BlendMode.dstATop),
-                    fit: BoxFit.cover)),
-            child: Scaffold(
-              backgroundColor: Colors.transparent,
-
-              // backgroundColor: Color.fromRGBO(239, 242, 221, 1),
-              appBar: AppBar(
-                leadingWidth: 0,
-                leading: Text(''),
-                title: Text('Select Route', style: TextStyle(color: Colors.yellow),),
-                backgroundColor: Color.fromARGB(0, 51, 102, 1),
-                actions: [
-                  IconButton(
-                      onPressed: () {
-                        auth.signOut();
-                        Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (context) => Landing()));
-                      },
-                      icon: Icon(Icons.logout),
-                      color: Colors.yellow,)
-                ],
-              ),
-              body: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 1, horizontal: 15),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Text(
-                            "FROM",
-                            style: TextStyle(
-                              color: Color.fromRGBO(127, 157, 156, 1.0),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20,
-                            ),
-                            // textAlign: TextAlign.start,
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      margin: const EdgeInsets.only(
-                        left: 15,
-                        right: 15,
-                        top: 8,
-                      ),
-                      decoration: BoxDecoration(
-                          color: Color.fromRGBO(189, 215, 214, 1.0),
-                          shape: BoxShape.rectangle,
-                          borderRadius: BorderRadius.circular(6.0),
-                          border: Border.all(
-                            color: Color.fromRGBO(127, 157, 156, 1.0),
-                          )),
-                      height: 70,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      child: Builder(builder: (context) {
-                        return DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            dropdownColor:
-                                const Color.fromRGBO(189, 215, 214, 1.0),
-                            isExpanded: true,
-                            // style: secondStyle,
-                            icon: const Icon(
-                              Icons.keyboard_arrow_down_rounded,
-                              color: Color.fromRGBO(127, 157, 156, 1.0),
-                              size: 30,
-                            ),
-                            value: fromValue,
-                            items: campusStops.map((String val) {
-                              return DropdownMenuItem<String>(
-                                value: val,
-                                child: Text(val),
-                              );
-                            }).toList(),
-                            onChanged: (String? val) {
-                              fromValue = val!;
-                              setState(() {});
-                            },
-                          ),
-                        );
-                      }),
-                    ),
-                    SizedBox(
-                      height: 35,
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 1, horizontal: 15),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Text(
-                            "TO",
-                            style: TextStyle(
-                              color: Color.fromRGBO(127, 157, 156, 1.0),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20,
-                            ),
-                            // textAlign: TextAlign.start,
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      margin: const EdgeInsets.only(
-                        left: 15,
-                        right: 15,
-                        top: 8,
-                      ),
-                      decoration: BoxDecoration(
-                          color: Color.fromRGBO(189, 215, 214, 1.0),
-                          shape: BoxShape.rectangle,
-                          borderRadius: BorderRadius.circular(6.0),
-                          border: Border.all(
-                            color: Color.fromRGBO(127, 157, 156, 1.0),
-                          )),
-                      height: 70,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      child: Builder(builder: (context) {
-                        return DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            dropdownColor:
-                                const Color.fromRGBO(189, 215, 214, 1.0),
-                            isExpanded: true,
-                            // style: secondStyle,
-                            icon: const Icon(
-                              Icons.keyboard_arrow_down_rounded,
-                              color: Color.fromRGBO(127, 157, 156, 1.0),
-                              size: 30,
-                            ),
-                            value: toValue,
-                            items: campusStops.map((String val) {
-                              return DropdownMenuItem<String>(
-                                value: val,
-                                child: Text(val),
-                              );
-                            }).toList(),
-                            onChanged: (String? val) {
-                              toValue = val!;
-                              setState(() {});
-                            },
-                          ),
-                        );
-                      }),
-                    ),
-                    SizedBox(
-                      height: 80,
-                    ),
-                    Container(
-                      margin: EdgeInsets.fromLTRB(20, 0, 20, 0),
-                      width: 230,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if(toValue==null && fromValue==null){
-                            errormsg = "Pickup or Destination address can't be Empty!";
-                          }
-                          else if (toValue==null) {
-
-                            errormsg = "Destination address missing";
-                          } else if (fromValue==null) {
-                            
-                            errormsg = "PickUp address missing";
-                          }
-                          else if(fromValue==toValue){
-                            
-                            errormsg = "PickUp address and Destination address must be different";
-                          }
-                          else
-                          {
-                            errormsg = "";
-                          }
-                          if (errormsg == "") {
-                            db.create_request(
-                                fromValue!, toValue!, _uid, '0', "");
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => PassWait()));
-                          } else {
-                            Fluttertoast.showToast(
-                                msg: errormsg!,
-                                toastLength: Toast.LENGTH_SHORT,
-                                gravity: ToastGravity.BOTTOM,
-                                timeInSecForIosWeb: 1);
-                          }
-                          // Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MainPage()));
-                        },
-                        style: ButtonStyle(
-                          // backgroundColor: MaterialStateProperty.all<Color>(
-                          //     Color.fromRGBO(238, 107, 97, 1.0)),
-                          shape:
-                              MaterialStateProperty.all<RoundedRectangleBorder>(
-                                  RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(13.0),
-                                      side: BorderSide(color: Colors.red))),
-                        ),
-                        child: Text(
-                          'Search',
-                          style: TextStyle(
-                            fontSize: 16,
-                            // color: Colors.white70
-                          ),
-                        ),
-                      ),
-                    )
-                  ],
-                ),
-              ),
-            )));
+  void initState() {
+    super.initState();
+    db = Databases();
+    db.initialise();
+    _uid = auth.currentUser?.uid.toString() ?? "";
+    _resumeExistingRequest();
   }
 
-  Future<void> checking() async {
-    db.check_request(_uid).then((value) {
-      a = value;
-      print(a);
-      Navigator.push(
-          context, MaterialPageRoute(builder: (context) => PassWait()));
+  /// If this passenger already has an open request, jump straight back to the
+  /// waiting screen rather than letting them file a second one.
+  ///
+  /// The original navigated unconditionally once check_request resolved. With
+  /// no open request that assigned null to a `late Map`, which threw inside
+  /// the .then() and was swallowed as an unhandled future error — the redirect
+  /// was being suppressed by an exception rather than by a check.
+  Future<void> _resumeExistingRequest() async {
+    final existing = await db.check_request(_uid);
+    if (!mounted || existing == null) return;
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const PassWait()));
+  }
+
+  void _swap() {
+    setState(() {
+      final t = fromValue;
+      fromValue = toValue;
+      toValue = t;
     });
+  }
+
+  void _toast(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.textPrimary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.field),
+        ),
+        margin: const EdgeInsets.all(AppSpacing.md),
+      ));
+  }
+
+  void _search() {
+    if (fromValue == null && toValue == null) {
+      _toast('Choose where you are and where you are going');
+      return;
+    }
+    if (fromValue == null) {
+      _toast('Pickup point missing');
+      return;
+    }
+    if (toValue == null) {
+      _toast('Destination missing');
+      return;
+    }
+    if (fromValue == toValue) {
+      _toast('Pickup and destination must be different');
+      return;
+    }
+
+    db.create_request(fromValue!, toValue!, _uid, '0', "");
+    Navigator.push(
+        context, MaterialPageRoute(builder: (_) => const PassWait()));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: const Text('Where to?'),
+        actions: [
+          IconButton(
+            tooltip: 'Log out',
+            icon: const Icon(Icons.logout, size: 22),
+            onPressed: () {
+              auth.signOut();
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const Landing()),
+                (route) => false,
+              );
+            },
+          ),
+        ],
+      ),
+      body: SafeArea(
+        top: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.sm,
+              AppSpacing.screen, AppSpacing.xl),
+          children: [
+            const Text('Book a rickshaw',
+                style: AppText.display),
+            const SizedBox(height: AppSpacing.sm),
+            const Text('Pick your stops and we will find a driver on campus.',
+                style: AppText.bodyMuted),
+            const SizedBox(height: AppSpacing.lg),
+            AppCard(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      children: [
+                        _StopPicker(
+                          label: 'FROM',
+                          icon: Icons.my_location,
+                          value: fromValue,
+                          hint: 'Pickup point',
+                          onChanged: (v) => setState(() => fromValue = v),
+                        ),
+                        const Divider(height: AppSpacing.md),
+                        _StopPicker(
+                          label: 'TO',
+                          icon: Icons.place_outlined,
+                          value: toValue,
+                          hint: 'Destination',
+                          onChanged: (v) => setState(() => toValue = v),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  IconButton(
+                    tooltip: 'Swap',
+                    onPressed: _swap,
+                    icon: const Icon(Icons.swap_vert,
+                        color: AppColors.primary, size: 26),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            PrimaryButton(
+                label: 'Find a rickshaw',
+                icon: Icons.search,
+                onPressed: _search),
+            const SizedBox(height: AppSpacing.xl),
+            const Text('POPULAR STOPS', style: AppText.sectionLabel),
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: [
+                for (final stop in const [
+                  'Main Gate',
+                  'Central Library',
+                  'Chatter',
+                  'Sports Complex',
+                ])
+                  _StopChip(
+                    label: stop,
+                    onTap: () => setState(() {
+                      if (fromValue == null) {
+                        fromValue = stop;
+                      } else if (toValue == null && stop != fromValue) {
+                        toValue = stop;
+                      }
+                    }),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StopPicker extends StatelessWidget {
+  const _StopPicker({
+    required this.label,
+    required this.icon,
+    required this.value,
+    required this.hint,
+    required this.onChanged,
+  });
+
+  final String label;
+  final IconData icon;
+  final String? value;
+  final String hint;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: AppColors.primary),
+        const SizedBox(width: AppSpacing.sm + 2),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: AppText.sectionLabel),
+              DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  isExpanded: true,
+                  value: value,
+                  hint: Text(hint,
+                      style: AppText.body
+                          .copyWith(color: AppColors.textSecondary)),
+                  icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                      color: AppColors.textSecondary),
+                  style: AppText.body,
+                  borderRadius: BorderRadius.circular(AppRadius.card),
+                  items: campusStops
+                      .map((s) => DropdownMenuItem<String>(
+                            value: s,
+                            child: Text(s, overflow: TextOverflow.ellipsis),
+                          ))
+                      .toList(),
+                  onChanged: onChanged,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StopChip extends StatelessWidget {
+  const _StopChip({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.pill),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md, vertical: AppSpacing.sm + 2),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Text(label,
+            style: AppText.body.copyWith(fontSize: 13)),
+      ),
+    );
   }
 }

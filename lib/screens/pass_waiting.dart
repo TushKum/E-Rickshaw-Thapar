@@ -1,7 +1,6 @@
-// ignore_for_file: prefer_const_constructors, sort_child_properties_last, unnecessary_new, no_leading_underscores_for_local_identifiers
+// ignore_for_file: use_build_context_synchronously
 
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:erickshaw/screens/driverinfo.dart';
 import 'package:erickshaw/screens/select_route.dart';
@@ -9,6 +8,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../database.dart';
+import '../theme/app_theme.dart';
+import '../widgets/widget.dart';
 
 class PassWait extends StatefulWidget {
   const PassWait({Key? key}) : super(key: key);
@@ -17,33 +18,24 @@ class PassWait extends StatefulWidget {
   State<PassWait> createState() => _PassWaitState();
 }
 
-bool _iconbool = false;
-
-IconData _iconLight = Icons.wb_sunny;
-IconData _iconDark = Icons.nights_stay;
-
 class _PassWaitState extends State<PassWait> {
-  late String driver_uid;
-  late String from;
-  late String to;
-  late Map a;
   late Databases db;
-  String passuid = "", passfrom = "", passto = "";
-  initialise() {
-    db = Databases();
-    db.initialise();
-  }
-
   late Timer timer;
   final auth = FirebaseAuth.instance;
   late String _uid;
+
+  String passuid = "", passfrom = "", passto = "";
+
+  @override
   void initState() {
     super.initState();
-    initialise();
+    db = Databases();
+    db.initialise();
     _uid = auth.currentUser?.uid.toString() ?? "";
-    timer = Timer.periodic(Duration(seconds: 1), (timer) {
-      CheckAccepted();
-    });
+    // NOTE: polls once per second. Every tick is a Firestore document read, so
+    // this burns quota fast at pilot scale — see docs/RUNNING.md. Should move
+    // to a snapshots() listener.
+    timer = Timer.periodic(const Duration(seconds: 1), (_) => CheckAccepted());
   }
 
   @override
@@ -52,107 +44,108 @@ class _PassWaitState extends State<PassWait> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    ThemeData _lightTheme = ThemeData(
-      primarySwatch: Colors.amber,
-      brightness: Brightness.light,
-      // buttonTheme: ButtonThemeData(buttonColor: Colors.black),
-      appBarTheme: AppBarTheme(backgroundColor: Color.fromARGB(0, 51, 102, 1)),
-    );
-
-    ThemeData _darkTheme = ThemeData(
-      primarySwatch: Colors.deepOrange,
-      brightness: Brightness.dark,
-      // appBarTheme: AppBarTheme(backgroundColor: Colors.blue),
-
-      // buttonTheme: ButtonThemeData(buttonColor: Colors.white)
-    );
-    return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: _iconbool ? _darkTheme : _lightTheme,
-        home: Container(
-            decoration: BoxDecoration(
-                image: DecorationImage(
-                    image: AssetImage(
-                      'assets/images/bg.png',
-                    ),
-                    colorFilter: new ColorFilter.mode(
-                        Colors.black.withOpacity(0.4), BlendMode.dstATop),
-                    fit: BoxFit.cover)),
-            child: Scaffold(
-              backgroundColor: Colors.transparent,
-
-              appBar: AppBar(
-                actions: [
-                  IconButton(
-                      onPressed: () {
-                        setState(() {
-                          _iconbool = !_iconbool;
-                        });
-                      },
-                      icon: Icon(_iconbool ? _iconDark : _iconLight))
-                ],
-              ),
-              // backgroundColor: Color.fromRGBO(239, 242, 221, 1),
-              body: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(
-                      color: Color.fromRGBO(238, 107, 97, 1.0),
-                    ),
-                    SizedBox(
-                      height: 25,
-                    ),
-                    Text(
-                      'Waiting for driver to confirm your ride',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    SizedBox(
-                      height: 25,
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        db.delete(_uid);
-                        Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => SelectRoute()));
-                      },
-                      child: Text('Cancel Ride'),
-                      style: ButtonStyle(
-                          // backgroundColor: MaterialStateProperty.all<Color>(
-                          //     Color.fromRGBO(238, 107, 97, 1.0)),
-                          ),
-                    )
-                  ],
-                ),
-              ),
-            )));
+  Future<void> CheckAccepted() async {
+    final value = await db.check_request(_uid);
+    if (!mounted || value == null) return;
+    if (value['pending'] == '1') {
+      timer.cancel();
+      passfrom = value['from'];
+      passto = value['to'];
+      passuid = value['driver_uid'];
+      db.delete(_uid);
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => driver_details(uid: passuid, pfrom: passfrom, to: passto),
+        ),
+      );
+    }
   }
 
-  Future<void> CheckAccepted() async {
-    db.check_request(_uid).then((value) {
-      setState(() {
-        a = value;
-        if (a['pending'] == '1') {
-          print(a['from']);
-          passfrom = a['from'];
-          passto = a['to'];
-          passuid = a['driver_uid'];
-          Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => driver_details(
-                        uid: passuid,
-                        pfrom: passfrom,
-                        to: passto,
-                      )));
-          db.delete(_uid);
-          dispose();
-        }
-      });
-    });
+  void _cancel() {
+    timer.cancel();
+    db.delete(_uid);
+    Navigator.pushReplacement(
+        context, MaterialPageRoute(builder: (_) => const SelectRoute()));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const _PulsingRickshaw(),
+              const SizedBox(height: AppSpacing.xl),
+              const Text('Finding you a rickshaw',
+                  style: AppText.display, textAlign: TextAlign.center),
+              const SizedBox(height: AppSpacing.md),
+              const Text(
+                'Your request is visible to every driver on campus. '
+                'You will see their details as soon as one accepts.',
+                style: AppText.bodyMuted,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              const SizedBox(
+                width: 180,
+                child: LinearProgressIndicator(
+                  minHeight: 4,
+                  backgroundColor: AppColors.border,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              SecondaryButton(label: 'Cancel ride', onPressed: _cancel),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Gently pulsing badge so the wait does not feel frozen.
+class _PulsingRickshaw extends StatefulWidget {
+  const _PulsingRickshaw();
+
+  @override
+  State<_PulsingRickshaw> createState() => _PulsingRickshawState();
+}
+
+class _PulsingRickshawState extends State<_PulsingRickshaw>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1400),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: Tween<double>(begin: 0.94, end: 1.06)
+          .animate(CurvedAnimation(parent: _c, curve: Curves.easeInOut)),
+      child: Container(
+        height: 170,
+        width: 170,
+        decoration: const BoxDecoration(
+          color: AppColors.primarySoft,
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.electric_rickshaw,
+            size: 78, color: AppColors.primary),
+      ),
+    );
   }
 }

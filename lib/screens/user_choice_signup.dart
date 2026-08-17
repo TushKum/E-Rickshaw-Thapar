@@ -1,140 +1,56 @@
-// ignore_for_file: prefer_const_constructors, unused_import
-
 import 'package:erickshaw/screens/customer.dart';
 import 'package:erickshaw/screens/driversign.dart';
-import 'package:erickshaw/screens/login.dart';
 import 'package:flutter/material.dart';
 
-class UserChoiceSignUp extends StatefulWidget {
-  const UserChoiceSignUp({Key? key}) : super(key: key);
+import '../theme/app_theme.dart';
+import 'role_card.dart';
 
-  @override
-  _UserChoiceSignUp createState() => _UserChoiceSignUp();
-}
+class UserChoiceSignUp extends StatelessWidget {
+  const UserChoiceSignUp({super.key});
 
-bool _iconbool = false;
-
-IconData _iconLight = Icons.wb_sunny;
-IconData _iconDark = Icons.nights_stay;
-
-class _UserChoiceSignUp extends State<UserChoiceSignUp> {
   @override
   Widget build(BuildContext context) {
-    ThemeData _lightTheme = ThemeData(
-      primarySwatch: Colors.amber,
-      brightness: Brightness.light,
-      buttonTheme: ButtonThemeData(buttonColor: Colors.amber),
-      appBarTheme: AppBarTheme(backgroundColor: Color.fromARGB(0, 51, 102, 1)),
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Create an account', style: AppText.display),
+              const SizedBox(height: AppSpacing.sm),
+              const Text(
+                'Drivers and passengers sign up separately.',
+                style: AppText.bodyMuted,
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              RoleCard(
+                icon: Icons.electric_rickshaw,
+                title: 'Driver',
+                subtitle: 'Register your rickshaw and number-plate',
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const DriverSign())),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              RoleCard(
+                icon: Icons.person_outline,
+                title: 'Passenger',
+                subtitle: 'Sign up with your campus email',
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const customer_login())),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
-
-    ThemeData _darkTheme = ThemeData(
-        primarySwatch: Colors.deepOrange,
-        brightness: Brightness.dark,
-
-        // appBarTheme: AppBarTheme(backgroundColor: Colors.blue),
-        buttonTheme:
-            ButtonThemeData(buttonColor: Color.fromARGB(255, 224, 72, 26))
-        // buttonTheme: ButtonThemeData(buttonColor: Colors.white)
-        );
-    return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: _iconbool ? _darkTheme : _lightTheme,
-        home: Container(
-            decoration: BoxDecoration(
-                image: DecorationImage(
-                    image: AssetImage(
-                      'assets/images/bg.png',
-                    ),
-                    colorFilter: new ColorFilter.mode(
-                        Colors.black.withOpacity(0.4), BlendMode.dstATop),
-                    fit: BoxFit.cover)),
-            child: Scaffold(
-              backgroundColor: Colors.transparent,
-              appBar: AppBar(
-                actions: [
-                  IconButton(
-                      onPressed: () {
-                        setState(() {
-                          _iconbool = !_iconbool;
-                        });
-                      },
-                      icon: Icon(_iconbool ? _iconDark : _iconLight))
-                ],
-              ),
-              // backgroundColor: Color.fromRGBO(239, 242, 221, 1),
-              body: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Center(
-                    child: Column(
-                      children: [
-                        Container(
-                            margin: EdgeInsets.fromLTRB(20, 0, 20, 0),
-                            width: 230,
-                            height: 50,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) => DriverSign()));
-                              },
-                              style: ButtonStyle(
-                                // backgroundColor: MaterialStateProperty.all<Color>(
-                                //     Color.fromRGBO(238, 107, 97, 1.0)),
-                                shape: MaterialStateProperty.all<
-                                        RoundedRectangleBorder>(
-                                    RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(18.0),
-                                  // side: BorderSide(color: Colors.red)
-                                )),
-                              ),
-                              child: Text(
-                                'Driver',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  // color: Colors.white70),
-                                ),
-                              ),
-                            )),
-                        SizedBox(
-                          height: 50,
-                        ),
-                        Container(
-                            margin: EdgeInsets.fromLTRB(20, 0, 20, 0),
-                            width: 230,
-                            height: 50,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) =>
-                                            customer_login()));
-                              },
-                              style: ButtonStyle(
-                                // backgroundColor: MaterialStateProperty.all<Color>(
-                                //     Color.fromRGBO(238, 107, 97, 1.0)),
-                                shape: MaterialStateProperty.all<
-                                        RoundedRectangleBorder>(
-                                    RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(18.0),
-                                  // side: BorderSide(color: Colors.red)
-                                )),
-                              ),
-                              child: Text(
-                                'Passenger',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  //  color: Colors.white70)
-                                ),
-                              ),
-                            ))
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            )));
   }
 }

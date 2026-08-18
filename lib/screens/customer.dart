@@ -5,6 +5,7 @@ import 'package:erickshaw/screens/login.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../campus_email.dart';
 import '../database.dart';
 import '../theme/app_theme.dart';
 import '../widgets/widget.dart';
@@ -50,7 +51,11 @@ class _customer_loginState extends State<customer_login> {
     if (_number.text.isEmpty) return "Number can't be empty";
     if (_number.text.length != 10) return 'Enter a 10-digit mobile number';
     if (_email.text.trim().isEmpty) return "Email can't be empty";
+    if (!isThaparEmail(_email.text)) {
+      return 'Use your $kCampusEmailDomain address to sign up';
+    }
     if (_password.text.isEmpty) return "Password can't be empty";
+    if (_password.text.length < 6) return 'Password must be at least 6 characters';
     if (_confirmpassword.text.isEmpty) return 'Confirm your password';
     if (_confirmpassword.text != _password.text) return "Passwords don't match";
     return null;
@@ -111,7 +116,9 @@ class _customer_loginState extends State<customer_login> {
         children: [
           const Text('Passenger sign up', style: AppText.display),
           const SizedBox(height: AppSpacing.sm),
-          const Text('Use your campus email so drivers know you are a student.',
+          const Text(
+              'Sign up with your $kCampusEmailDomain address. You will need to '
+              'confirm it before you can request a ride.',
               style: AppText.bodyMuted),
           const SizedBox(height: AppSpacing.lg),
           AppTextField(
@@ -130,8 +137,8 @@ class _customer_loginState extends State<customer_login> {
           ),
           const SizedBox(height: AppSpacing.md),
           AppTextField(
-            label: 'Email',
-            hint: 'you@thapar.edu',
+            label: 'Campus email',
+            hint: 'you$kCampusEmailDomain',
             controller: _email,
             keyboardType: TextInputType.emailAddress,
             prefixIcon: Icons.mail_outline,

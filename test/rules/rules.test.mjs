@@ -3,7 +3,9 @@ import {
   assertSucceeds,
   assertFails,
 } from '@firebase/rules-unit-testing';
-import { doc, setDoc, getDoc, deleteDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import {
+  doc, setDoc, getDoc, deleteDoc, collection, getDocs, query, where,
+} from 'firebase/firestore';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -14,32 +16,40 @@ const PROJECT = 'demo-erickshaw';
 const DRIVER = 'driver_alice';
 const PASSENGER = 'passenger_bob';
 const OTHER_PASSENGER = 'passenger_carol';
-const NOBODY = 'randomer_dave'; // signed in, but no profile document
+const NOBODY = 'randomer_dave';       // signed in, but no profile document
+const OUTSIDER = 'outsider_erin';     // signed in with a non-campus address
 
 const testEnv = await initializeTestEnvironment({
   projectId: PROJECT,
-  firestore: {
-    rules: readFileSync(RULES, 'utf8'),
-    host: '127.0.0.1',
-    port: 8080,
-  },
+  firestore: { rules: readFileSync(RULES, 'utf8'), host: '127.0.0.1', port: 8080 },
 });
 
 const REQ = { from: 'Main Gate', to: 'Central Library', pending: '0', driver_uid: '' };
 
-// Seed profiles and a fresh open request, bypassing rules.
+// Token claims matter now: passenger writes are gated on a @thapar.edu address
+// and ride actions on a confirmed one. Drivers are deliberately exempt from the
+// domain rule — real rickshaw drivers have no institute address.
+const CLAIMS = {
+  [PASSENGER]:       { email: 'bob@thapar.edu',      email_verified: true },
+  [OTHER_PASSENGER]: { email: 'carol@thapar.edu',    email_verified: true },
+  [DRIVER]:          { email: 'alice@gmail.com',     email_verified: true },
+  [NOBODY]:          { email: 'dave@thapar.edu',     email_verified: true },
+  [OUTSIDER]:        { email: 'erin@gmail.com',      email_verified: true },
+};
+
+const db = (uid, overrides = {}) =>
+  testEnv.authenticatedContext(uid, { ...CLAIMS[uid], ...overrides }).firestore();
+
 async function reset() {
   await testEnv.clearFirestore();
   await testEnv.withSecurityRulesDisabled(async (ctx) => {
-    const db = ctx.firestore();
-    await setDoc(doc(db, 'drivers', DRIVER), { name: 'Alice', type: 'driver' });
-    await setDoc(doc(db, 'passengers', PASSENGER), { name: 'Bob', type: 'passenger' });
-    await setDoc(doc(db, 'passengers', OTHER_PASSENGER), { name: 'Carol', type: 'passenger' });
-    await setDoc(doc(db, 'requests', PASSENGER), REQ);
+    const d = ctx.firestore();
+    await setDoc(doc(d, 'drivers', DRIVER), { name: 'Alice', type: 'driver' });
+    await setDoc(doc(d, 'passengers', PASSENGER), { name: 'Bob', type: 'passenger' });
+    await setDoc(doc(d, 'passengers', OTHER_PASSENGER), { name: 'Carol', type: 'passenger' });
+    await setDoc(doc(d, 'requests', PASSENGER), REQ);
   });
 }
-
-const db = (uid) => testEnv.authenticatedContext(uid).firestore();
 
 let pass = 0, fail = 0;
 async function check(name, fn) {
@@ -59,15 +69,12 @@ console.log('\n--- legitimate flows must still work ---');
 await check('passenger opens their own request', () =>
   assertSucceeds(setDoc(doc(db(OTHER_PASSENGER), 'requests', OTHER_PASSENGER), REQ)));
 
-await check('passenger reads their own request (polling for accept)', () =>
+await check('passenger reads their own request', () =>
   assertSucceeds(getDoc(doc(db(PASSENGER), 'requests', PASSENGER))));
 
 await check('driver lists every open request', () =>
   assertSucceeds(getDocs(collection(db(DRIVER), 'requests'))));
 
-// DriverOptions listens with where('pending','==','0') rather than fetching
-// the whole collection. isDriver() is document-independent so the rule still
-// resolves, but the query shape is worth pinning.
 await check('driver runs the filtered open-requests query', () =>
   assertSucceeds(getDocs(
     query(collection(db(DRIVER), 'requests'), where('pending', '==', '0')))));
@@ -89,7 +96,43 @@ await check('driver reads passenger profile after matching', () =>
 await check('passenger reads driver profile after matching', () =>
   assertSucceeds(getDoc(doc(db(PASSENGER), 'drivers', DRIVER))));
 
-console.log('\n--- the hole this change closes ---');
+console.log('\n--- campus email restriction (passengers only) ---');
+
+await check('student signs up with a @thapar.edu address', () =>
+  assertSucceeds(setDoc(doc(db(NOBODY), 'passengers', NOBODY),
+    { name: 'Dave', type: 'passenger' })));
+
+await check('outsider CANNOT create a passenger profile', () =>
+  assertFails(setDoc(doc(db(OUTSIDER), 'passengers', OUTSIDER),
+    { name: 'Erin', type: 'passenger' })));
+
+await check('lookalike domain CANNOT create a passenger profile', () =>
+  assertFails(setDoc(
+    doc(db(OUTSIDER, { email: 'erin@thapar.edu.evil.com' }), 'passengers', OUTSIDER),
+    { name: 'Erin', type: 'passenger' })));
+
+await check('an account with no email claim CANNOT create one', () =>
+  assertFails(setDoc(
+    doc(db(OUTSIDER, { email: null }), 'passengers', OUTSIDER),
+    { name: 'Erin', type: 'passenger' })));
+
+await check('drivers are exempt — non-campus address still registers', () =>
+  assertSucceeds(setDoc(doc(db(OUTSIDER), 'drivers', OUTSIDER),
+    { name: 'Erin', type: 'driver' })));
+
+console.log('\n--- confirmed address required to ride ---');
+
+await check('unverified passenger CANNOT open a request', () =>
+  assertFails(setDoc(
+    doc(db(OTHER_PASSENGER, { email_verified: false }), 'requests', OTHER_PASSENGER),
+    REQ)));
+
+await check('unverified driver CANNOT accept a ride', () =>
+  assertFails(setDoc(
+    doc(db(DRIVER, { email_verified: false }), 'requests', PASSENGER),
+    { ...REQ, pending: '1', driver_uid: DRIVER })));
+
+console.log('\n--- the driver role check ---');
 
 await check('non-driver CANNOT accept a ride', () =>
   assertFails(setDoc(doc(db(NOBODY), 'requests', PASSENGER),
@@ -99,7 +142,7 @@ await check('another passenger CANNOT accept a ride', () =>
   assertFails(setDoc(doc(db(OTHER_PASSENGER), 'requests', PASSENGER),
     { ...REQ, pending: '1', driver_uid: OTHER_PASSENGER })));
 
-await check('another passenger CANNOT delete someone else\'s request', () =>
+await check("another passenger CANNOT delete someone else's request", () =>
   assertFails(deleteDoc(doc(db(OTHER_PASSENGER), 'requests', PASSENGER))));
 
 await check('driver CANNOT delete a request', () =>
@@ -107,7 +150,7 @@ await check('driver CANNOT delete a request', () =>
 
 console.log('\n--- driver cannot cheat while accepting ---');
 
-await check('driver CANNOT stamp a different driver\'s uid', () =>
+await check("driver CANNOT stamp a different driver's uid", () =>
   assertFails(setDoc(doc(db(DRIVER), 'requests', PASSENGER),
     { ...REQ, pending: '1', driver_uid: 'some_other_driver' })));
 
@@ -143,10 +186,10 @@ await check('CANNOT smuggle extra fields into a request', () =>
 
 console.log('\n--- profiles are owner-only ---');
 
-await check('CANNOT forge another user\'s driver profile', () =>
+await check("CANNOT forge another user's driver profile", () =>
   assertFails(setDoc(doc(db(NOBODY), 'drivers', DRIVER), { name: 'Impostor' })));
 
-await check('CANNOT self-register as a driver under someone else\'s uid', () =>
+await check("CANNOT self-register as a driver under someone else's uid", () =>
   assertFails(setDoc(doc(db(PASSENGER), 'drivers', DRIVER), { name: 'Bob' })));
 
 await check('unauthenticated user CANNOT read requests', () =>

@@ -20,6 +20,22 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/passengers/$(request.auth.uid));
     }
 
+    // Passengers must be students. Drivers deliberately are not held to this —
+    // rickshaw drivers have no institute address and are onboarded by hand.
+    function isThaparEmail() {
+      return request.auth.token.email is string
+        && request.auth.token.email.lower().matches('[^@]+@thapar[.]edu');
+    }
+
+    // Firebase Auth will mint an account for any address without checking it,
+    // so the domain claim alone proves nothing — anyone could sign up as
+    // someone-else@thapar.edu. Requiring the address to be confirmed is what
+    // turns the domain restriction into a real gate. Not applied to profile
+    // creation, which necessarily happens before the link is clicked.
+    function emailVerified() {
+      return request.auth.token.email_verified == true;
+    }
+
     // Profiles. Readable by any signed-in user because the match exchanges
     // contact details both ways: the passenger opens driverinfo.dart against
     // the accepting driver's uid, the driver opens passinfo.dart against the
@@ -31,7 +47,8 @@ service cloud.firestore {
 
     match /passengers/{uid} {
       allow read: if signedIn();
-      allow create, update, delete: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid && isThaparEmail();
+      allow update, delete: if signedIn() && request.auth.uid == uid;
     }
 
     // Ride requests. Document id is the requesting passenger's uid.
@@ -55,9 +72,11 @@ service cloud.firestore {
       // in DriverOptions.Reload() still resolves.
       allow read: if isOwner() || isDriver();
 
-      // Opening a request: only for yourself, only unassigned.
+      // Opening a request: only for yourself, only unassigned, and only once
+      // the campus address behind the account has actually been confirmed.
       allow create: if isOwner()
         && isPassenger()
+        && emailVerified()
         && validShape()
         && request.resource.data.pending == '0'
         && request.resource.data.driver_uid == '';
@@ -78,6 +97,7 @@ service cloud.firestore {
       //    may only move a still-open request into the accepted state, and
       //    may not rewrite the route while doing so.
       allow update: if isDriver()
+        && emailVerified()
         && validShape()
         && resource.data.pending == '0'
         && request.resource.data.pending == '1'
